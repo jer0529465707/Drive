@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime as dt
 
 db = SQLAlchemy()
 
@@ -20,3 +21,12 @@ class User(UserMixin, db.Model):
 
     def check_password_hash(self, password):
         return check_password_hash(self.password_hash, password)
+
+
+class File(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    path = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    file_size = db.Column(db.String(100), nullable=False)
+    date_added = db.Column(db.DateTime, default=dt.datetime.utcnow)
