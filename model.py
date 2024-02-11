@@ -30,3 +30,18 @@ class File(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     file_size = db.Column(db.String(100), nullable=False)
     date_added = db.Column(db.DateTime, default=dt.datetime.utcnow)
+
+
+class FileShare(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    file_id = db.Column(db.Integer, db.ForeignKey("file.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    shared_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+
+    file = db.relationship(
+        "File", backref=db.backref("file_shares", cascade="all, delete-orphan")
+    )
+    user = db.relationship(
+        "User", backref=db.backref("file_shares", cascade="all, delete-orphan")
+    )

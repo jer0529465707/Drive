@@ -30,6 +30,19 @@
         max-height: 400px;
         overflow-y: auto;
       }
+      .popup-button {
+        position: relative;
+        right: 0;
+      }
+      .popup-menu {
+        display: none;
+        right: 0;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        padding: 12px 16px;
+        z-index: 1;
+      }
     </style>
   </head>
   <body>
@@ -43,15 +56,74 @@
           <div class="file-info">
             <span>Uploaded: {{ file.date_added }}</span>
             <br />
-            <!-- Add a line break here -->
-            <span>Size: {{ file.file_size }}</span>
+            <span>Size: {{ formatBytes(file.file_size) }}</span>
             <br />
-            <!-- Add a line break here -->
+            <span>Path: {{ file.path }}</span>
+          </div>
+          <div>
+            <button
+              id="popup-button-{{ file.id }}"
+              class="popup-button"
+              onclick="togglePopup('{{ file.id }}')"
+            >
+              Share
+            </button>
+            <div
+              id="popup-menu-{{ file.id }}"
+              class="popup-menu"
+              style="display: none"
+            >
+              <p>Share this file with:</p>
+              {% for user in users %}
+              <div>
+                <input type="checkbox" id="user-checkbox-{{ file.id }}-{{
+                user.id }}" {{ "checked" if user.id in shares[file.id] else ""}}
+                onchange="shareFile( file.id , user.id , this.checked)" />
+                <label for="user-checkbox-{{ file.id }}-{{ user.id }}"
+                  >{{ user.username }}</label
+                >
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <h2>Files shared with me:</h2>
+      <div class="scrollable-container">
+        {% for file in shared_files %}
+        <div class="file-container">
+          <div class="file-name">{{ file.name }}</div>
+          <a href="{{ url_for('download_file', id=file.id) }}">Download</a>
+          <div class="file-info">
+            <span>Uploaded: {{ file.date_added }}</span>
+            <br />
+            <span>Size: {{ formatBytes(file.file_size) }}</span>
+            <br />
             <span>Path: {{ file.path }}</span>
           </div>
         </div>
         {% endfor %}
       </div>
     </div>
+    <script>
+      const shareFile = (fileId, userId, isBoxChecked) => {
+        fetch("/change-permissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            file_id: fileId,
+            user_id: userId,
+            checked: isBoxChecked,
+          }),
+        });
+      };
+
+      const togglePopup = (fileId) => {
+        const popupMenu = document.getElementById(`popup-menu-${fileId}`);
+        popupMenu.style.display =
+          popupMenu.style.display === "none" ? "block" : "none";
+      };
+    </script>
   </body>
 </html>
