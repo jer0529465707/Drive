@@ -2,6 +2,7 @@
 import os
 from flask import (
     Flask,
+    jsonify,
     request,
     render_template_string,
     render_template,
@@ -20,7 +21,9 @@ from flask_login import (
 
 from werkzeug.utils import secure_filename
 
-from model import User, File, db
+from model import User, File, FileShare, db
+
+from utils import formatBytes
 
 
 app = Flask(__name__)
@@ -158,15 +161,60 @@ def get_users():
 @app.route("/files")
 @login_required
 def view_files():
+    users = User.query.filter(User.id != current_user.id).all()
+    shared_files = (
+        File.query.join(FileShare).filter(FileShare.user_id == current_user.id).all()
+    )
+
     if current_user.is_admin_user:
         files = File.query.all()
     else:
         files = File.query.filter_by(user_id=current_user.id).all()
 
-    return render_template("files.html", files=files)
+    # List of users having access to each owned file
+    shares = {}
+
+    for file in files:
+        shares[file.id] = [file_share.user_id for file_share in file.file_shares]
+
+    return render_template(
+        "files.html",
+        files=files,
+        shared_files=shared_files,
+        shares=shares,
+        users=users,
+        formatBytes=formatBytes,
+    )
+
+
+@app.route("/change-permissions", methods=["POST"])
+def change_file_permissions():
+    data = request.get_json()
+
+    file_id = data.get("file_id")
+    user_id = data.get("user_id")
+    can_view = data.get("checked")
+
+    file_share = FileShare.query.filter_by(file_id=file_id, user_id=user_id).first()
+
+    if can_view:
+        if file_share is None:
+            file_share = FileShare(file_id=file_id, user_id=user_id)
+            db.session.add(file_share)
+    else:
+        if file_share:
+            db.session.delete(file_share)
+
+    db.session.commit()
+
+    return jsonify(success=True)
+
+
+# TODO : protect this route from unauthorized downloads
 
 
 @app.route("/download/<int:id>")
+@login_required
 def download_file(id):
     file = File.query.get(id)
     return send_from_directory(UPLOAD_FOLDER, file.name, as_attachment=True)
