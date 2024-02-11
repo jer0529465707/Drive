@@ -8,6 +8,7 @@ from flask import (
     url_for,
     redirect,
     flash,
+    send_from_directory,
 )
 from flask_login import (
     LoginManager,
@@ -17,7 +18,10 @@ from flask_login import (
     current_user,
 )
 
-from model import User, db
+from werkzeug.utils import secure_filename
+
+from model import User, File, db
+
 
 app = Flask(__name__)
 
@@ -29,6 +33,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "add_secret_key_here_for_session_security"
 
 db.init_app(app)
+
+UPLOAD_FOLDER = "docs"
 
 
 with app.app_context():
@@ -114,9 +120,29 @@ def index():
 
 @app.route("/upload", methods=["POST"])
 def file_upload():
+    if "file" not in request.files:
+        return "No file found"
+
     file = request.files["file"]
-    file.save("docs/" + file.filename)  # Replace with your desired save path
-    return "File uploaded successfully"
+    if file.filename == "":
+        return "No file found"
+
+    if file:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+        file_size = os.path.getsize(os.path.join(UPLOAD_FOLDER, filename))
+
+        new_file = File(
+            name=filename,
+            path=os.path.join(UPLOAD_FOLDER, filename),
+            user_id=current_user.id,
+            file_size=file_size,
+        )
+        db.session.add(new_file)
+        db.session.commit()
+
+        return "File uploaded successfully"
 
 
 @app.route("/users", methods=["GET"])
@@ -127,6 +153,33 @@ def get_users():
 
     all_users = User.query.all()
     return render_template("users.html", users=all_users)
+
+
+@app.route("/files")
+@login_required
+def view_files():
+    if current_user.is_admin_user:
+        files = File.query.all()
+    else:
+        files = File.query.filter_by(user_id=current_user.id).all()
+
+    return render_template("files.html", files=files)
+
+
+@app.route("/download/<int:id>")
+def download_file(id):
+    file = File.query.get(id)
+    return send_from_directory(UPLOAD_FOLDER, file.name, as_attachment=True)
+
+
+# DEBUGGING ONLY : REMOVE IN PRODUCTION
+
+
+@app.route("/drop-db")
+def reset_db():
+    db.drop_all()
+    db.create_all()
+    return "Database reset"
 
 
 if __name__ == "__main__":

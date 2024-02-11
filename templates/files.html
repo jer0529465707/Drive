@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .file-container {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .file-name {
+        font-weight: bold;
+      }
+      .file-info {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #888;
+      }
+      .scrollable-container {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Files</h1>
+      <div class="scrollable-container">
+        {% for file in files %}
+        <div class="file-container">
+          <div class="file-name">{{ file.name }}</div>
+          <a href="{{ url_for('download_file', id=file.id) }}">Download</a>
+          <div class="file-info">
+            <span>Uploaded: {{ file.date_added }}</span>
+            <br />
+            <!-- Add a line break here -->
+            <span>Size: {{ file.file_size }}</span>
+            <br />
+            <!-- Add a line break here -->
+            <span>Path: {{ file.path }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </body>
+</html>
