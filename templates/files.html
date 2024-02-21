@@ -78,7 +78,8 @@
               <div>
                 <input type="checkbox" id="user-checkbox-{{ file.id }}-{{
                 user.id }}" {{ "checked" if user.id in shares[file.id] else ""}}
-                onchange="shareFile( file.id , user.id , this.checked)" />
+                onchange="shareFile('{{file.id}}' , '{{user.id}}' ,
+                this.checked)" />
                 <label for="user-checkbox-{{ file.id }}-{{ user.id }}"
                   >{{ user.username }}</label
                 >
